@@ -1,0 +1,1 @@
+export type Report = { url: string; onpage: any; keywords: any; performance: any; };

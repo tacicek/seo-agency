@@ -1,0 +1,215 @@
+{
+  "name": "Screaming Frog SEO Crawler Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule: Daily at 2 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "cd /path/to/seo-analyzer-starter && source .env.screamingfrog.local && python apps/api/crawl_and_ingest.py"
+      },
+      "name": "Execute Screaming Frog Crawl",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/path/to/seo-analyzer-starter/reports/latest/summary.json",
+        "options": {}
+      },
+      "name": "Read Crawl Summary",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse summary.json and format for notification\nconst summary = JSON.parse($input.first().json.data);\n\nreturn [\n  {\n    json: {\n      subject: `SEO Crawl Complete: ${summary.target_url}`,\n      message: `\nCrawl Summary:\n--------------\nTarget: ${summary.target_url}\nTotal Pages: ${summary.total_pages}\nPages with 200 Status: ${summary.pages_200}\nIndexable Pages: ${summary.indexable_pages}\nPages with Titles: ${summary.pages_with_titles}\nPages with Descriptions: ${summary.pages_with_descriptions}\nAvg Word Count: ${summary.avg_word_count.toFixed(0)}\n\nTimestamp: ${summary.crawl_timestamp}\n      `,\n      stats: summary\n    }\n  }\n];"
+      },
+      "name": "Format Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "seo-crawler@yourdomain.com",
+        "toEmail": "team@yourdomain.com",
+        "subject": "={{$json.subject}}",
+        "emailType": "text",
+        "text": "={{$json.message}}"
+      },
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{$json.message}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "={{$json.stats.supabase_url}}/rest/v1/crawl_summaries",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "target_url",
+              "value": "={{$json.stats.target_url}}"
+            },
+            {
+              "name": "total_pages",
+              "value": "={{$json.stats.total_pages}}"
+            },
+            {
+              "name": "pages_200",
+              "value": "={{$json.stats.pages_200}}"
+            },
+            {
+              "name": "indexable_pages",
+              "value": "={{$json.stats.indexable_pages}}"
+            },
+            {
+              "name": "crawl_timestamp",
+              "value": "={{$json.stats.crawl_timestamp}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Supabase API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule: Daily at 2 AM": {
+      "main": [
+        [
+          {
+            "node": "Execute Screaming Frog Crawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Screaming Frog Crawl": {
+      "main": [
+        [
+          {
+            "node": "Read Crawl Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Crawl Summary": {
+      "main": [
+        [
+          {
+            "node": "Format Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-10-07T21:00:00.000Z",
+      "updatedAt": "2025-10-07T21:00:00.000Z",
+      "id": "1",
+      "name": "SEO Automation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-07T21:00:00.000Z",
+  "versionId": "1"
+}
