@@ -18,11 +18,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy only what we need to run
-COPY --from=builder /app/.next ./.next
+## Standalone output copy
+# App server + node_modules, package.json, server.js
+COPY --from=builder /app/.next/standalone ./
+# Static assets
+COPY --from=builder /app/.next/static ./.next/static
+# Public (falls vorhanden – im Build erzeugen wir einen leeren Ordner)
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+# Start the standalone server directly
+CMD ["node", "server.js"]
