@@ -35,6 +35,8 @@ services:
     build:
       context: ./apps/web
       dockerfile: Dockerfile.prod
+      args:
+        - API_INTERNAL_URL=http://api:8000
     container_name: seo-web
     depends_on:
       api:

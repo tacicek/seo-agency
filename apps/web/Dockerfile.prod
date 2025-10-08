@@ -8,6 +8,9 @@ RUN npm ci || npm install
 # Copy source and build
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Accept internal API URL at build-time for Next.js rewrites
+ARG API_INTERNAL_URL
+ENV API_INTERNAL_URL=${API_INTERNAL_URL}
 # Ensure public folder exists even if repo has none
 RUN mkdir -p public
 RUN npm run build
