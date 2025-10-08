@@ -144,8 +144,9 @@ export default function Page() {
     }
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-      const res = await fetch(`${base}/analyze`, {
+  // Use relative /api to go through Next.js rewrite to FastAPI service
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
+  const res = await fetch(`${base}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -184,8 +185,9 @@ export default function Page() {
     }
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-      const res = await fetch(`${base}/ai/generate-content`, {
+  // Use relative /api to go through Next.js rewrite to FastAPI service
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
+  const res = await fetch(`${base}/ai/generate-content`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
