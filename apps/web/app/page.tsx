@@ -246,6 +246,10 @@ export default function Page() {
   const spamScore = mozMetrics?.spam_score ?? 0;
   const mozRank = linkQuality?.mozrank ?? 0;
   const keywordTop = Array.isArray(report?.keywords?.top) ? report?.keywords?.top.slice(0, 10) : [];
+  const seoKeywordsData = toRecord(report?.seo_keywords);
+  const seoKeywords = Array.isArray(seoKeywordsData?.seo_keywords) ? seoKeywordsData.seo_keywords : [];
+  const detectedTopic = seoKeywordsData?.detected_topic ?? null;
+  const relatedSearches = Array.isArray(seoKeywordsData?.related_searches) ? seoKeywordsData.related_searches : [];
   const onpage = toRecord(report?.onpage) ?? {};
   const keywords = toRecord(report?.keywords) ?? {};
   const contentQuality = toRecord(report?.content_quality);
@@ -702,41 +706,85 @@ export default function Page() {
                   </section>
 
                   <section id="keywords" className="rounded-3xl border border-white/10 bg-slate-900/70 p-6 shadow-xl">
-                    <div className="flex items-start justify-between">
-                      <h2 className="text-xl font-semibold text-slate-100">Top Keywords</h2>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <h2 className="text-xl font-semibold text-slate-100">SEO Keywords (SERP-Enhanced)</h2>
+                        <p className="mt-1 text-sm text-slate-300/80">
+                          Relevante Keywords basierend auf Thema, SERP-Daten und Seiteninhalt
+                        </p>
+                        {detectedTopic && (
+                          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                            Thema erkannt: {detectedTopic}
+                          </div>
+                        )}
+                      </div>
                       <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
                         Total Words: <span className="font-semibold text-slate-100">{keywords?.total_words ?? 0}</span>
                       </div>
                     </div>
 
-                    {keywordTop.length > 0 ? (
-                      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
-                        <table className="min-w-full divide-y divide-white/5 text-sm">
-                          <thead className="bg-white/5">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">Rank</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">Keyword</th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-200">Count</th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-200">Density</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {keywordTop.map((kw: any, idx: number) => (
-                              <tr key={`${kw.word}-${idx}`} className="hover:bg-white/5">
-                                <td className="px-4 py-3 font-semibold text-slate-400">#{idx + 1}</td>
-                                <td className="px-4 py-3 font-medium text-slate-100">{kw.word}</td>
-                                <td className="px-4 py-3 text-right text-slate-300">{kw.count}</td>
-                                <td className="px-4 py-3 text-right">
-                                  <span className="rounded-full bg-sky-500/10 px-2 py-1 text-xs font-semibold text-sky-200">{kw.percent}%</span>
-                                </td>
+                    {seoKeywords.length > 0 ? (
+                      <>
+                        <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+                          <table className="min-w-full divide-y divide-white/5 text-sm">
+                            <thead className="bg-white/5">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">Rank</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">Keyword</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-200">Relevanz</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-200">Vorkommen</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                              {seoKeywords.slice(0, 10).map((kw: any, idx: number) => (
+                                <tr key={`${kw.keyword}-${idx}`} className="hover:bg-white/5">
+                                  <td className="px-4 py-3 font-semibold text-slate-400">#{idx + 1}</td>
+                                  <td className="px-4 py-3 font-medium text-slate-100">
+                                    {kw.keyword}
+                                    {kw.keyword === detectedTopic && (
+                                      <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                                        HAUPT
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                      kw.relevance_score >= 10 
+                                        ? "bg-emerald-500/10 text-emerald-200" 
+                                        : kw.relevance_score >= 5 
+                                        ? "bg-sky-500/10 text-sky-200" 
+                                        : "bg-slate-500/10 text-slate-300"
+                                    }`}>
+                                      {kw.relevance_score}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-slate-300">{kw.count_on_page}×</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {relatedSearches.length > 0 && (
+                          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <div className="text-sm font-semibold text-slate-100">Verwandte Suchanfragen (Google SERP)</div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {relatedSearches.slice(0, 8).map((search: string, idx: number) => (
+                                <span
+                                  key={`${search}-${idx}`}
+                                  className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 text-xs text-slate-200"
+                                >
+                                  {search}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300/80">
-                        Anahtar kelime metrikleri oluşturulamadı.
+                        SEO-Keywords konnten nicht analysiert werden. Möglicherweise fehlt SerpAPI-Zugriff oder der Inhalt ist zu kurz.
                       </div>
                     )}
                   </section>
