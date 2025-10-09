@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from datetime import datetime
 from analyzers.onpage import analyze_onpage
-from analyzers.keywords import analyze_keywords
+from analyzers.keywords import analyze_keywords, analyze_seo_keywords
 from analyzers.performance import analyze_performance
 from analyzers.moz import get_backlink_summary, analyze_moz_metrics, test_moz_connection
 from analyzers.data_analytics import (
@@ -166,15 +166,28 @@ def analyze(req: AnalyzeRequest):
         # Basic analysis
         onpage = analyze_onpage(str(req.url))
         keywords = analyze_keywords(onpage.get("text_content", ""))
+        
+        # SEO-focused keyword analysis (SERP-enhanced)
+        seo_keywords = analyze_seo_keywords(
+            text=onpage.get("text_content", ""),
+            url=str(req.url),
+            title=onpage.get("title"),
+            top_n=10
+        )
+        
         performance = analyze_performance(str(req.url))
         
         # MOZ metrics
         moz_metrics = get_backlink_summary(str(req.url))
         
-        # Advanced Data Analytics
+        # Advanced Data Analytics (use SEO keywords for better relevance)
+        top_seo_kw = [kw["keyword"] for kw in seo_keywords.get("seo_keywords", [])[:5]]
+        if not top_seo_kw:
+            top_seo_kw = [kw["word"] for kw in keywords.get("top", [])[:5]]
+        
         content_quality = analyze_content_quality(
             onpage.get("text_content", ""),
-            keywords=[kw["word"] for kw in keywords.get("top", [])[:5]]
+            keywords=top_seo_kw
         )
         
         # SEO Potential Prediction
@@ -189,6 +202,7 @@ def analyze(req: AnalyzeRequest):
         complete_analysis = {
             "onpage": onpage,
             "keywords": keywords,
+            "seo_keywords": seo_keywords,
             "performance": performance,
             "moz": moz_metrics,
             "content_quality": content_quality
@@ -209,6 +223,7 @@ def analyze(req: AnalyzeRequest):
             "url": str(req.url),
             "onpage": onpage,
             "keywords": keywords,
+            "seo_keywords": seo_keywords,
             "performance": performance,
             "moz": moz_metrics,
             "content_quality": content_quality,
