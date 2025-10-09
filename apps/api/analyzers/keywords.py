@@ -99,8 +99,6 @@ def analyze_seo_keywords(text: str, url: str, title: Optional[str] = None, top_n
             "method": str
         }
     """
-    from .serpapi import analyze_serp_results
-    
     # Extract topic from URL and title
     topic = _extract_topic(url, title or "")
     
@@ -120,6 +118,7 @@ def analyze_seo_keywords(text: str, url: str, title: Optional[str] = None, top_n
     # Get related searches from SERP
     related_keywords = []
     try:
+        from .serpapi import analyze_serp_results
         serp_data = analyze_serp_results(topic, location="Switzerland")
         if serp_data and not serp_data.get("error"):
             # Extract related searches
@@ -132,8 +131,9 @@ def analyze_seo_keywords(text: str, url: str, title: Optional[str] = None, top_n
                 question = q.get("question", "")
                 if question:
                     related_keywords.append(question.lower())
-    except Exception:
-        pass  # SerpAPI not available or quota exceeded
+    except Exception as e:
+        # SerpAPI not available or quota exceeded – continue without SERP data
+        pass
     
     # Extract all candidate keywords from page
     words = re.findall(r"\b[\w\u00C0-\u017F]+\b", text.lower())
@@ -176,7 +176,7 @@ def analyze_seo_keywords(text: str, url: str, title: Optional[str] = None, top_n
         "detected_topic": topic,
         "seo_keywords": scored[:top_n],
         "related_searches": related_keywords[:10],
-        "method": "serp_enhanced"
+        "method": "serp_enhanced" if related_keywords else "page_only"
     }
 
 
